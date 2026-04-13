@@ -68,7 +68,7 @@ async def handle_control(data: dict):
     if status:
         logger.debug(f"추적 상태: {status}")
 
-    if control:
+    if control and data.get("tracking") == "on":
         pan  = control.get("pan", 0)
         tilt = control.get("tilt", 0)
         logger.debug(f"모터 제어 수신 — pan: {pan}, tilt: {tilt}")
