@@ -1,8 +1,8 @@
 import cv2
 from picamera2 import Picamera2
 
-FRAME_WIDTH  = 640
-FRAME_HEIGHT = 480
+FRAME_WIDTH  = 1920
+FRAME_HEIGHT = 1080
 
 class CameraModule:
     def __init__(self, width=FRAME_WIDTH, height=FRAME_HEIGHT):
