@@ -2,3 +2,4 @@ numpy
 opencv-python
 ultralytics
 RPi.GPIO
+websockets
