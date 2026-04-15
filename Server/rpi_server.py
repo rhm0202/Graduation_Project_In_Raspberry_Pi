@@ -92,7 +92,7 @@ async def stream_handler(websocket):
                     if frame_count % 100 == 0:
                         logger.debug(f"프레임 전송: {frame_count}장")
 
-                await asyncio.sleep(0.016)  # 60fps
+                await asyncio.sleep(0)  # 이벤트 루프 양보 (최대 속도)
         except websockets.exceptions.ConnectionClosed:
             pass
 
