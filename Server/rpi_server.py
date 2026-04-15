@@ -84,6 +84,9 @@ async def stream_handler(websocket):
         try:
             while True:
                 frame = camera.capture_bgr()
+                if frame is None:
+                    await asyncio.sleep(0)
+                    continue
 
                 ret, encoded = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
                 if ret:
