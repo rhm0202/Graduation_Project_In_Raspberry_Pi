@@ -6,10 +6,10 @@ import sys
 import cv2
 import websockets
 from logging.handlers import RotatingFileHandler
-from picamera2 import Picamera2
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from modules.motor_module import PanTiltController
+from modules.camera_module import CameraModule
 
 # ==========================================
 # 설정
@@ -17,8 +17,6 @@ from modules.motor_module import PanTiltController
 HOST = "0.0.0.0"  # 모든 IP에서 접속 허용
 PORT = 8000       # spotlight_core.py의 RPI_WS_URL 포트와 일치해야 함
 
-FRAME_WIDTH  = 640
-FRAME_HEIGHT = 480
 JPEG_QUALITY = 80  # 전송용 JPEG 압축 품질
 
 # ==========================================
@@ -43,10 +41,8 @@ logger.addHandler(_console_handler)
 # ==========================================
 # 카메라 초기화
 # ==========================================
-picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"size": (FRAME_WIDTH, FRAME_HEIGHT)}))
-picam2.start()
-logger.info(f"카메라 시작 ({FRAME_WIDTH}x{FRAME_HEIGHT})")
+camera = CameraModule()
+logger.info("카메라 시작")
 
 # ==========================================
 # 모터 초기화
@@ -87,7 +83,7 @@ async def stream_handler(websocket):
         nonlocal frame_count
         try:
             while True:
-                frame = picam2.capture_array()
+                frame = camera.capture_bgr()
 
                 ret, encoded = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
                 if ret:
@@ -96,7 +92,7 @@ async def stream_handler(websocket):
                     if frame_count % 100 == 0:
                         logger.debug(f"프레임 전송: {frame_count}장")
 
-                await asyncio.sleep(0)  # 이벤트 루프 양보
+                await asyncio.sleep(0.016)  # 60fps
         except websockets.exceptions.ConnectionClosed:
             pass
 
@@ -136,5 +132,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("서버 종료")
     finally:
-        picam2.stop()
+        camera.stop()
         pan_tilt.cleanup()
