@@ -23,16 +23,10 @@ source venv/bin/activate
 echo "pip 업데이트"
 python -m pip install --upgrade pip
 
-echo "CPU용 PyTorch / TorchVision 설치"
-pip install --index-url https://download.pytorch.org/whl/cpu \
-    torch==2.11.0 \
-    torchvision==0.26.0
-
-echo "나머지 Python 라이브러리 설치"
+echo "Python 라이브러리 설치"
 pip install -r requirements.txt
 
 echo "설치 확인"
-python -c "import torch, torchvision; print('torch:', torch.__version__); print('torchvision:', torchvision.__version__)"
-python -c "from ultralytics import YOLO; print('ultralytics import ok')"
+python -c "import cv2, numpy, websockets; print('패키지 확인 완료')"
 
 echo "설치 완료"
