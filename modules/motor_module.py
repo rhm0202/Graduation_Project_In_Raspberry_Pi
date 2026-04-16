@@ -1,4 +1,7 @@
+import logging
 import RPi.GPIO as GPIO
+
+logger = logging.getLogger("motor_module")
 
 
 class ServoMotor:
@@ -34,7 +37,7 @@ class ServoMotor:
 class PanTiltController:
     """Pan/Tilt 서보 두 축 제어.
 
-    PC에서 보정값(pan, tilt)을 수신하면 update()를 호출한다.
+    PC에서 보정값(pan, tilt)을 수신하면 apply_correction() 또는 handle_command()를 호출한다.
     보정값의 절댓값이 threshold 미만이면 움직이지 않는다 (흔들림 방지).
     """
 
@@ -54,12 +57,43 @@ class PanTiltController:
         self.threshold = threshold
         self.gain = gain
 
-    def update(self, pan_correction: float, tilt_correction: float):
-        """PC에서 받은 보정값으로 서보 이동."""
-        if abs(pan_correction) > self.threshold:
+    def apply_correction(self, pan_correction: float, tilt_correction: float):
+        """보정값(pan, tilt)을 받아 서보 이동.
+        절댓값이 threshold 미만이면 흔들림으로 간주하고 무시한다.
+        """
+        if abs(pan_correction) >= self.threshold:
             self.pan.move_by(pan_correction * self.gain)
-        if abs(tilt_correction) > self.threshold:
+        if abs(tilt_correction) >= self.threshold:
             self.tilt.move_by(tilt_correction * self.gain)
+
+    def handle_command(self, data: dict) -> bool:
+        """PC에서 수신한 제어 명령 딕셔너리를 파싱해 모터를 구동한다.
+
+        예상 포맷:
+            {
+                "tracking": "on" | "off",
+                "control": {"pan": <float>, "tilt": <float>},
+                "status": "tracking" | "lost" | "searching"   # 선택
+            }
+
+        - tracking == "on" 이고 control 키가 있을 때만 모터를 움직인다.
+        - status 필드는 로그 출력에만 사용한다.
+        - 보정이 실제로 적용된 경우 True를 반환한다 (호출자가 완료 응답을 보낼 수 있도록).
+        """
+        status  = data.get("status")
+        control = data.get("control")
+
+        if status:
+            logger.debug(f"추적 상태: {status}")
+
+        if data.get("tracking") == "on" and control:
+            pan  = float(control.get("pan",  0))
+            tilt = float(control.get("tilt", 0))
+            logger.debug(f"모터 보정값 수신 — pan: {pan:.2f}, tilt: {tilt:.2f}")
+            self.apply_correction(pan, tilt)
+            return True
+
+        return False
 
     def center(self):
         """두 축을 정중앙(90°)으로 복귀."""

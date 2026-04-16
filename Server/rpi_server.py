@@ -52,25 +52,6 @@ pan_tilt.center()
 logger.info("Pan/Tilt 서보 초기화 완료 (중앙 복귀)")
 
 # ==========================================
-# 제어 명령 처리
-# ==========================================
-async def handle_control(data: dict):
-    """PC에서 수신한 제어 명령 처리.
-    예: {"control": {"pan": -12.3, "tilt": 5.6}, "status": "tracking"}
-    """
-    control = data.get("control")
-    status  = data.get("status")
-
-    if status:
-        logger.debug(f"추적 상태: {status}")
-
-    if control and data.get("tracking") == "on":
-        pan  = control.get("pan", 0)
-        tilt = control.get("tilt", 0)
-        logger.debug(f"모터 제어 수신 — pan: {pan}, tilt: {tilt}")
-        pan_tilt.update(pan, tilt)
-
-# ==========================================
 # WebSocket 핸들러
 # ==========================================
 async def stream_handler(websocket):
@@ -100,12 +81,19 @@ async def stream_handler(websocket):
             pass
 
     async def receive_commands():
-        """PC에서 오는 JSON 제어 명령 수신."""
+        """PC에서 오는 JSON 제어 명령 수신.
+        보정이 적용된 경우 보정값을 0으로 초기화한 완료 응답을 PC로 전송한다.
+        """
         try:
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    await handle_control(data)
+                    applied = pan_tilt.handle_command(data)
+                    if applied:
+                        await websocket.send(json.dumps({
+                            "type": "motor_corrected",
+                            "control": {"pan": 0, "tilt": 0}
+                        }))
                 except json.JSONDecodeError:
                     pass
         except websockets.exceptions.ConnectionClosed:
