@@ -1,15 +1,14 @@
 import asyncio
 import json
-import logging
-import os
 import sys
+import os
 import cv2
 import websockets
-from logging.handlers import RotatingFileHandler
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from modules.motor_module import PanTiltController
 from modules.camera_module import CameraModule
+from modules.logger import get_logger
 
 # ==========================================
 # 설정
@@ -22,21 +21,7 @@ JPEG_QUALITY = 80  # 전송용 JPEG 압축 품질
 # ==========================================
 # 로거
 # ==========================================
-os.makedirs("logs", exist_ok=True)
-
-logger = logging.getLogger("rpi_server")
-logger.setLevel(logging.DEBUG)
-
-_formatter = logging.Formatter("[%(asctime)s] %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-
-_file_handler = RotatingFileHandler("logs/rpi_server.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
-_file_handler.setFormatter(_formatter)
-
-_console_handler = logging.StreamHandler()
-_console_handler.setFormatter(_formatter)
-
-logger.addHandler(_file_handler)
-logger.addHandler(_console_handler)
+logger = get_logger("rpi_server")
 
 # ==========================================
 # 카메라 초기화
