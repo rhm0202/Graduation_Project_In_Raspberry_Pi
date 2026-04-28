@@ -29,8 +29,7 @@ class ServoMotor:
         """절대 각도로 이동 (범위 초과 시 클램프)."""
         self.current_angle = max(self.min_angle, min(self.max_angle, angle))
         self.pi.set_servo_pulsewidth(self.pin, _angle_to_pulsewidth(self.current_angle))
-        time.sleep(0.5)
-        self.pi.set_servo_pulsewidth(self.pin, 0)  # 신호 차단으로 지터 방지
+        time.sleep(0.3)
 
     def move_by(self, delta: float):
         self.set_angle(self.current_angle + delta)
