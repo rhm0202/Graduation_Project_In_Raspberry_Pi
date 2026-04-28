@@ -44,8 +44,8 @@ class PanTiltController:
     보정값의 절댓값이 threshold 미만이면 움직이지 않는다 (흔들림 방지).
     """
 
-    PAN_PIN  = 12  # GPIO 12 (PWM0)
-    TILT_PIN = 33  # GPIO 33
+    PAN_PIN  = 18  # BCM 18 (물리 핀 12)
+    TILT_PIN = 13  # BCM 13 (물리 핀 33)
 
     def __init__(self, threshold: float = 5.0, gain: float = 0.1):
         """
