@@ -2,3 +2,4 @@ numpy
 opencv-python
 RPi.GPIO
 websockets
+pigpio

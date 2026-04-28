@@ -16,7 +16,8 @@ sudo apt-get install -y \
     ffmpeg \
     v4l-utils \
     libgl1 \
-    libglib2.0-0
+    libglib2.0-0 \
+    pigpio
 
 echo "가상환경 생성 ($PROJECT_ROOT/venv)"
 python3 -m venv --system-site-packages "$PROJECT_ROOT/venv"
