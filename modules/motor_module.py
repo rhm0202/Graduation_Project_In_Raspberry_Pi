@@ -1,4 +1,5 @@
 import logging
+import time
 import RPi.GPIO as GPIO
 
 logger = logging.getLogger("motor_module")
@@ -25,6 +26,8 @@ class ServoMotor:
         """절대 각도로 이동 (범위 초과 시 클램프)."""
         self.current_angle = max(self.min_angle, min(self.max_angle, angle))
         self.pwm.ChangeDutyCycle(self._to_duty(self.current_angle))
+        time.sleep(0.3)
+        self.pwm.ChangeDutyCycle(0)  # 신호 차단으로 지터 방지
 
     def move_by(self, delta: float):
         """현재 위치에서 delta만큼 상대 이동."""
