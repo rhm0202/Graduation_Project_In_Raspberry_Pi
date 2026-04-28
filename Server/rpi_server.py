@@ -32,7 +32,7 @@ logger.info("카메라 시작")
 # ==========================================
 # 모터 초기화
 # ==========================================
-pan_tilt = PanTiltController(threshold=5.0, gain=0.1)
+pan_tilt = PanTiltController(threshold=0.5, gain=1.0)
 pan_tilt.center()
 logger.info("Pan/Tilt 서보 초기화 완료 (중앙 복귀)")
 
@@ -73,7 +73,8 @@ async def stream_handler(websocket):
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    applied = pan_tilt.handle_command(data)
+                    loop = asyncio.get_event_loop()
+                    applied = await loop.run_in_executor(None, pan_tilt.handle_command, data)
                     if applied:
                         await websocket.send(json.dumps({
                             "type": "motor_corrected",
