@@ -15,10 +15,5 @@ fi
 echo "가상환경 활성화"
 source "$VENV/bin/activate"
 
-echo "pigpio 데몬 확인"
-if ! pgrep -x pigpiod > /dev/null; then
-    sudo pigpiod
-fi
-
 echo "서버 실행"
 python "$SERVER"
