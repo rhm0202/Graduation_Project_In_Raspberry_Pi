@@ -1,40 +1,37 @@
 import logging
-import time
-import RPi.GPIO as GPIO
+import pigpio
 
 logger = logging.getLogger("motor_module")
 
 
-class ServoMotor:
-    """단일 서보 모터 제어 (PWM 50Hz 기준)."""
+def _angle_to_pulsewidth(angle: float) -> int:
+    """각도(0~180)를 펄스폭(500~2500µs)으로 변환."""
+    return int(500 + (angle / 180.0) * 2000)
 
-    def __init__(self, pin: int, min_angle: float = 0, max_angle: float = 180, initial_angle: float = 90):
+
+class ServoMotor:
+    """단일 서보 모터 제어 (pigpio 하드웨어 PWM 기준)."""
+
+    def __init__(self, pi: pigpio.pi, pin: int, min_angle: float = 0, max_angle: float = 180, initial_angle: float = 90):
+        self.pi = pi
         self.pin = pin
         self.min_angle = min_angle
         self.max_angle = max_angle
         self.current_angle = initial_angle
-
-        GPIO.setup(pin, GPIO.OUT)
-        self.pwm = GPIO.PWM(pin, 50)  # 50Hz
-        self.pwm.start(0)
-        self.set_angle(initial_angle)
-
-    def _to_duty(self, angle: float) -> float:
-        """각도(0~180)를 듀티 사이클(2.5~12.5%)로 변환."""
-        return 2.5 + (angle / 180.0) * 10.0
+        self.pi.set_servo_pulsewidth(pin, _angle_to_pulsewidth(initial_angle))
 
     def set_angle(self, angle: float):
         """절대 각도로 이동 (범위 초과 시 클램프)."""
         self.current_angle = max(self.min_angle, min(self.max_angle, angle))
-        self.pwm.ChangeDutyCycle(self._to_duty(self.current_angle))
-        time.sleep(0.3)
+        self.pi.set_servo_pulsewidth(self.pin, _angle_to_pulsewidth(self.current_angle))
 
     def move_by(self, delta: float):
         """현재 위치에서 delta만큼 상대 이동."""
         self.set_angle(self.current_angle + delta)
 
     def stop(self):
-        self.pwm.stop()
+        """PWM 신호 중단 (모터 릴리즈)."""
+        self.pi.set_servo_pulsewidth(self.pin, 0)
 
 
 class PanTiltController:
@@ -44,18 +41,20 @@ class PanTiltController:
     보정값의 절댓값이 threshold 미만이면 움직이지 않는다 (흔들림 방지).
     """
 
-    PAN_PIN  = 12  # GPIO 12 (PWM0)
-    TILT_PIN = 33  # GPIO 13 (PWM1)
+    PAN_PIN  = 12  # GPIO 12
+    TILT_PIN = 33  # GPIO 33
 
     def __init__(self, threshold: float = 5.0, gain: float = 0.1):
         """
-        threshold : 보정값이 이 값 이상일 때만 모터 작동 (단위: 픽셀 or degree)
+        threshold : 보정값이 이 값 이상일 때만 모터 작동 (degree)
         gain      : 보정값 → 이동 각도 변환 비율
         """
-        GPIO.setmode(GPIO.BCM)
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
+            raise RuntimeError("pigpio 데몬에 연결할 수 없습니다. 'sudo pigpiod'를 먼저 실행하세요.")
 
-        self.pan  = ServoMotor(self.PAN_PIN)
-        self.tilt = ServoMotor(self.TILT_PIN)
+        self.pan  = ServoMotor(self.pi, self.PAN_PIN)
+        self.tilt = ServoMotor(self.pi, self.TILT_PIN)
 
         self.threshold = threshold
         self.gain = gain
@@ -81,7 +80,7 @@ class PanTiltController:
 
         - tracking == "on" 이고 control 키가 있을 때만 모터를 움직인다.
         - status 필드는 로그 출력에만 사용한다.
-        - 보정이 실제로 적용된 경우 True를 반환한다 (호출자가 완료 응답을 보낼 수 있도록).
+        - 보정이 실제로 적용된 경우 True를 반환한다.
         """
         status  = data.get("status")
         control = data.get("control")
@@ -106,4 +105,4 @@ class PanTiltController:
     def cleanup(self):
         self.pan.stop()
         self.tilt.stop()
-        GPIO.cleanup()
+        self.pi.stop()
