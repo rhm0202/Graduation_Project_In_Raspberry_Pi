@@ -45,7 +45,7 @@ class PanTiltController:
     """
 
     PAN_PIN  = 12  # GPIO 12 (PWM0)
-    TILT_PIN = 13  # GPIO 13 (PWM1)
+    TILT_PIN = 33  # GPIO 13 (PWM1)
 
     def __init__(self, threshold: float = 5.0, gain: float = 0.1):
         """
