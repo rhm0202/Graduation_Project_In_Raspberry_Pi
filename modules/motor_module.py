@@ -16,7 +16,8 @@ class ServoMotor:
 
         GPIO.setup(pin, GPIO.OUT)
         self.pwm = GPIO.PWM(pin, 50)  # 50Hz
-        self.pwm.start(self._to_duty(initial_angle))
+        self.pwm.start(0)
+        self.set_angle(initial_angle)
 
     def _to_duty(self, angle: float) -> float:
         """각도(0~180)를 듀티 사이클(2.5~12.5%)로 변환."""
