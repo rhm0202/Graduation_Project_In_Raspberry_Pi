@@ -25,11 +25,24 @@ class ServoMotor:
         self.pi.set_mode(pin, pigpio.OUTPUT)
         self.set_angle(initial_angle)
 
-    def set_angle(self, angle: float):
-        """절대 각도로 이동 (범위 초과 시 클램프)."""
-        self.current_angle = max(self.min_angle, min(self.max_angle, angle))
-        self.pi.set_servo_pulsewidth(self.pin, _angle_to_pulsewidth(self.current_angle))
-        time.sleep(0.3)
+    def set_angle(self, angle: float, steps: int = 20, step_delay: float = 0.015):
+        """절대 각도로 부드럽게 이동 (보간, 범위 초과 시 클램프).
+
+        steps * step_delay 가 총 이동 시간. 기본값: 20 * 0.015s = 0.3s
+        이동 거리가 작을수록 자동으로 steps 수를 줄여 지연을 최소화한다.
+        """
+        target = max(self.min_angle, min(self.max_angle, angle))
+        delta = target - self.current_angle
+        if abs(delta) < 0.5:
+            return
+
+        actual_steps = max(1, min(steps, int(abs(delta) / 0.5)))
+        step_size = delta / actual_steps
+        for _ in range(actual_steps):
+            self.current_angle += step_size
+            self.pi.set_servo_pulsewidth(self.pin, _angle_to_pulsewidth(self.current_angle))
+            time.sleep(step_delay)
+        self.current_angle = target
 
     def move_by(self, delta: float):
         self.set_angle(self.current_angle + delta)
