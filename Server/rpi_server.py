@@ -6,7 +6,7 @@ import cv2
 import websockets
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from modules.motor_module_pigpio import PanTiltController
+from modules.motor_module_pca9685 import PanTiltController
 from modules.camera_module import CameraModule
 from modules.logger import get_logger
 
