@@ -67,8 +67,8 @@ class PanTiltController:
         self.gain = gain
 
     def apply_correction(self, pan_correction: float, tilt_correction: float):
-        # if abs(pan_correction) >= self.threshold:
-        #     self.pan.move_by(pan_correction * self.gain)
+        if abs(pan_correction) >= self.threshold:
+            self.pan.move_by(pan_correction * self.gain)
         if abs(tilt_correction) >= self.threshold:
             self.tilt.move_by(tilt_correction * self.gain)
 
