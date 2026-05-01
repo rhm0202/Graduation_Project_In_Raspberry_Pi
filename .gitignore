@@ -1,1 +1,14 @@
 venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 로그
+logs/
+active/logs/
+
+# 다운로드된 외부 소스/아카이브
+pigpio-master/
+*.zip
