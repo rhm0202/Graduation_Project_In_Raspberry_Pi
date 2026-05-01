@@ -12,3 +12,6 @@ active/logs/
 # 다운로드된 외부 소스/아카이브
 pigpio-master/
 *.zip
+
+# 테스트
+test/
