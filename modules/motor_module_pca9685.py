@@ -13,8 +13,8 @@ class ServoMotor:
     move_by/set_angle은 목표각만 갱신하고 즉시 반환한다.
     """
 
-    STEP_SIZE  = 1.5   # 한 스텝당 최대 이동 각도
-    STEP_DELAY = 0.03  # 스텝 간격 (초)
+    STEP_SIZE  = 3.0   # 한 스텝당 최대 이동 각도
+    STEP_DELAY = 0.015  # 스텝 간격 (초)
 
     def __init__(self, kit: ServoKit, channel: int,
                  min_angle: float = 0, max_angle: float = 180,
