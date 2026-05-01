@@ -21,7 +21,7 @@ class ServoMotor:
         self.kit.servo[channel].angle = self.current_angle
         time.sleep(0.5)
 
-    def set_angle(self, angle: float, steps: int = 20, step_delay: float = 0.015):
+    def set_angle(self, angle: float, steps: int = 20, step_delay: float = 0.05):
         """절대 각도로 부드럽게 이동 (보간, 범위 초과 시 클램프).
 
         steps * step_delay 가 총 이동 시간. 기본값: 20 * 0.015s = 0.3s
@@ -67,8 +67,8 @@ class PanTiltController:
         self.gain = gain
 
     def apply_correction(self, pan_correction: float, tilt_correction: float):
-        if abs(pan_correction) >= self.threshold:
-            self.pan.move_by(pan_correction * self.gain)
+        # if abs(pan_correction) >= self.threshold:
+        #     self.pan.move_by(pan_correction * self.gain)
         if abs(tilt_correction) >= self.threshold:
             self.tilt.move_by(tilt_correction * self.gain)
 
