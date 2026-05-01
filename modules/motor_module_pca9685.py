@@ -1,12 +1,20 @@
-import logging
 import time
+import threading
 from adafruit_servokit import ServoKit
+from modules.logger import get_logger
 
-logger = logging.getLogger("motor_module_pca9685")
+logger = get_logger("motor_module_pca9685")
 
 
 class ServoMotor:
-    """단일 서보 모터 제어 (PCA9685 I2C PWM)."""
+    """단일 서보 모터 제어 (PCA9685 I2C PWM).
+
+    전용 워커 스레드가 목표각을 향해 부드럽게 이동한다.
+    move_by/set_angle은 목표각만 갱신하고 즉시 반환한다.
+    """
+
+    STEP_SIZE  = 1.5   # 한 스텝당 최대 이동 각도
+    STEP_DELAY = 0.03  # 스텝 간격 (초)
 
     def __init__(self, kit: ServoKit, channel: int,
                  min_angle: float = 0, max_angle: float = 180,
@@ -16,35 +24,53 @@ class ServoMotor:
         self.min_angle = min_angle
         self.max_angle = max_angle
         self.current_angle = max(min_angle, min(max_angle, initial_angle))
+        self._target_angle = self.current_angle
+
+        self._lock = threading.Lock()
+        self._event = threading.Event()
+        self._running = True
 
         self.kit.servo[channel].set_pulse_width_range(500, 2500)
         self.kit.servo[channel].angle = self.current_angle
         time.sleep(0.5)
 
-    def set_angle(self, angle: float, steps: int = 20, step_delay: float = 0.05):
-        """절대 각도로 부드럽게 이동 (보간, 범위 초과 시 클램프).
+        self._worker = threading.Thread(target=self._run, daemon=True)
+        self._worker.start()
 
-        steps * step_delay 가 총 이동 시간. 기본값: 20 * 0.015s = 0.3s
-        이동 거리가 작을수록 자동으로 steps 수를 줄여 지연을 최소화한다.
-        """
-        target = max(self.min_angle, min(self.max_angle, angle))
-        delta = target - self.current_angle
-        if abs(delta) < 0.5:
-            return
+    def _run(self):
+        while self._running:
+            self._event.wait()
+            self._event.clear()
+            while self._running:
+                with self._lock:
+                    target = self._target_angle
+                    delta = target - self.current_angle
+                    if abs(delta) < 0.5:
+                        break
+                    step = min(abs(delta), self.STEP_SIZE) * (1 if delta > 0 else -1)
+                    self.current_angle = max(self.min_angle, min(self.max_angle, self.current_angle + step))
+                    angle = self.current_angle
+                self.kit.servo[self.channel].angle = angle
+                time.sleep(self.STEP_DELAY)
 
-        actual_steps = max(1, min(steps, int(abs(delta) / 0.5)))
-        step_size = delta / actual_steps
-        for _ in range(actual_steps):
-            self.current_angle = max(self.min_angle, min(self.max_angle, self.current_angle + step_size))
-            self.kit.servo[self.channel].angle = self.current_angle
-            time.sleep(step_delay)
-        self.current_angle = target
+    def set_angle(self, angle: float):
+        with self._lock:
+            self._target_angle = max(self.min_angle, min(self.max_angle, angle))
+        self._event.set()
+
+    MAX_LOOKAHEAD = 8.0  # 현재 위치보다 최대 이 각도만큼만 앞서서 목표 설정
 
     def move_by(self, delta: float):
-        self.set_angle(self.current_angle + delta)
+        with self._lock:
+            new_target = self.current_angle + delta
+            # 목표가 현재 위치보다 MAX_LOOKAHEAD 이상 앞서지 않도록 제한
+            new_target = max(self.current_angle - self.MAX_LOOKAHEAD,
+                             min(self.current_angle + self.MAX_LOOKAHEAD, new_target))
+        self.set_angle(new_target)
 
     def stop(self):
-        # duty_cycle=0 으로 PWM 신호 중단 (서보를 자유 상태로)
+        self._running = False
+        self._event.set()
         self.kit._pca.channels[self.channel].duty_cycle = 0
 
 
@@ -71,6 +97,7 @@ class PanTiltController:
             self.pan.move_by(pan_correction * self.gain)
         if abs(tilt_correction) >= self.threshold:
             self.tilt.move_by(tilt_correction * self.gain)
+        logger.debug(f"서보 현재 각도 — pan: {self.pan.current_angle:.1f}°, tilt: {self.tilt.current_angle:.1f}°")
 
     def handle_command(self, data: dict) -> bool:
         status  = data.get("status")

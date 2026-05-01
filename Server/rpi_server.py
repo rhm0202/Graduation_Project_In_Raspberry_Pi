@@ -32,7 +32,7 @@ logger.info("카메라 시작")
 # ==========================================
 # 모터 초기화
 # ==========================================
-pan_tilt = PanTiltController(threshold=0.5, gain=1.0)
+pan_tilt = PanTiltController(threshold=0.5, gain=0.3)
 pan_tilt.center()
 logger.info("Pan/Tilt 서보 초기화 완료 (중앙 복귀)")
 
