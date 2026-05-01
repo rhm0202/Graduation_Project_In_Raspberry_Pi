@@ -62,7 +62,7 @@ class PanTiltController:
     def __init__(self, threshold: float = 5.0, gain: float = 0.1):
         self.kit = ServoKit(channels=16)
         self.pan  = ServoMotor(self.kit, self.PAN_CHANNEL)
-        self.tilt = ServoMotor(self.kit, self.TILT_CHANNEL)
+        self.tilt = ServoMotor(self.kit, self.TILT_CHANNEL, min_angle=20, max_angle=160)
         self.threshold = threshold
         self.gain = gain
 
