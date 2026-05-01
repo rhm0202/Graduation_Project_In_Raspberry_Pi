@@ -1,5 +1,4 @@
 numpy
 opencv-python
-RPi.GPIO
-pigpio
 websockets
+adafruit-circuitpython-servokit

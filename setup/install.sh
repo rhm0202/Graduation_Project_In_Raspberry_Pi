@@ -18,12 +18,6 @@ sudo apt-get install -y \
     libgl1 \
     libglib2.0-0
 
-echo "pigpiod 데몬 설치 시도"
-sudo apt-get install -y pigpio || echo "pigpio apt 설치 실패 — pip으로 대체 설치됩니다"
-
-echo "pigpiod 부팅 시 자동 시작 등록"
-sudo systemctl enable pigpiod 2>/dev/null || true
-
 echo "가상환경 생성 ($PROJECT_ROOT/venv)"
 python3 -m venv --system-site-packages "$PROJECT_ROOT/venv"
 
@@ -37,6 +31,6 @@ echo "Python 라이브러리 설치"
 pip install -r "$SCRIPT_DIR/requirements.txt"
 
 echo "설치 확인"
-python -c "import cv2, numpy, websockets; print('패키지 확인 완료')"
+python -c "import cv2, numpy, websockets, adafruit_servokit; print('패키지 확인 완료')"
 
 echo "설치 완료"
