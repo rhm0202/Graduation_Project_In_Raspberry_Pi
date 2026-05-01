@@ -56,8 +56,8 @@ class PanTiltController:
         2. 라이브러리 설치: pip install adafruit-circuitpython-servokit
     """
 
-    PAN_CHANNEL  = 1  # PCA9685 채널 1
-    TILT_CHANNEL = 0  # PCA9685 채널 0
+    PAN_CHANNEL  = 0  # PCA9685 채널 0
+    TILT_CHANNEL = 1  # PCA9685 채널 1
 
     def __init__(self, threshold: float = 5.0, gain: float = 0.1):
         self.kit = ServoKit(channels=16)
