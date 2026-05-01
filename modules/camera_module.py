@@ -32,7 +32,9 @@ class CameraModule:
     def capture_bgr(self):
         """최신 BGR 프레임 반환. 아직 프레임이 없으면 None 반환."""
         with self._lock:
-            return self._frame.copy() if self._frame is not None else None
+            if self._frame is None:
+                return None
+            return cv2.rotate(self._frame.copy(), cv2.ROTATE_180)
 
     def stop(self):
         self._running = False
