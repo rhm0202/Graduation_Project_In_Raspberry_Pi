@@ -6,7 +6,7 @@ import cv2
 import websockets
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from modules.motor_module_pigpio import PanTiltController
+from modules.motor_module_pca9685 import PanTiltController
 from modules.camera_module import CameraModule
 from modules.logger import get_logger
 
@@ -32,7 +32,7 @@ logger.info("카메라 시작")
 # ==========================================
 # 모터 초기화
 # ==========================================
-pan_tilt = PanTiltController(threshold=0.5, gain=1.0)
+pan_tilt = PanTiltController(threshold=0.5, gain=0.3)
 pan_tilt.center()
 logger.info("Pan/Tilt 서보 초기화 완료 (중앙 복귀)")
 
@@ -67,19 +67,21 @@ async def stream_handler(websocket):
 
     async def receive_commands():
         """PC에서 오는 JSON 제어 명령 수신.
-        보정이 적용된 경우 보정값을 0으로 초기화한 완료 응답을 PC로 전송한다.
+
+        ★ PID 방식 (신규):
+            { "type": "servo_angle", "pan_angle": float, "tilt_angle": float }
+            → 절대 각도로 서보 이동, 응답 없음 (일방향)
+
+        ★ 구버전 방식 (하위 호환):
+            { "tracking": "on", "control": { "pan": float, "tilt": float } }
+            → 델타 보정 적용
         """
         try:
             async for message in websocket:
                 try:
                     data = json.loads(message)
                     loop = asyncio.get_event_loop()
-                    applied = await loop.run_in_executor(None, pan_tilt.handle_command, data)
-                    if applied:
-                        await websocket.send(json.dumps({
-                            "type": "motor_corrected",
-                            "control": {"pan": 0, "tilt": 0}
-                        }))
+                    await loop.run_in_executor(None, pan_tilt.handle_command, data)
                 except json.JSONDecodeError:
                     pass
         except websockets.exceptions.ConnectionClosed:
