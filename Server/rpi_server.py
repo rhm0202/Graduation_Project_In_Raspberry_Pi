@@ -61,7 +61,7 @@ async def stream_handler(websocket):
                     if frame_count % 100 == 0:
                         logger.debug(f"프레임 전송: {frame_count}장")
 
-                await asyncio.sleep(0)  # 이벤트 루프 양보 (최대 속도)
+                await asyncio.sleep(1 / 50)  # 50fps 제한 (카메라 최대 지원 프레임레이트)
         except websockets.exceptions.ConnectionClosed:
             pass
 
@@ -80,7 +80,7 @@ async def stream_handler(websocket):
             async for message in websocket:
                 try:
                     data = json.loads(message)
-                    loop = asyncio.get_event_loop()
+                    loop = asyncio.get_running_loop()
                     await loop.run_in_executor(None, pan_tilt.handle_command, data)
                 except json.JSONDecodeError:
                     pass
