@@ -2,6 +2,7 @@ import asyncio
 import json
 import sys
 import os
+import io
 import cv2
 import websockets
 import queue
@@ -25,9 +26,12 @@ logger = get_logger("rpi_server")
 # ==========================================
 # H.264 버퍼 클래스
 # ==========================================
-class H264StreamOutput:
-    """하드웨어 인코더에서 실시간으로 생성된 바이트 스트림을 버퍼링하는 클래스"""
+class H264StreamOutput(io.BufferedIOBase):
+    """하드웨어 인코더에서 실시간으로 생성된 바이트 스트림을 버퍼링하는 클래스.
+    picamera2의 FileOutput이 io.BufferedIOBase 타입을 요구하므로 이를 상속합니다.
+    """
     def __init__(self):
+        super().__init__()
         self.q = queue.Queue(maxsize=30)  # 네트워크 지연 대비 버퍼 큐
 
     def write(self, buf):
@@ -36,9 +40,7 @@ class H264StreamOutput:
             self.q.put_nowait(buf)
         except queue.Full:
             pass
-
-    def flush(self):
-        pass
+        return len(buf)  # BufferedIOBase는 write 시 바이트 수를 반환해야 합니다.
 
 # ==========================================
 # 카메라 초기화
