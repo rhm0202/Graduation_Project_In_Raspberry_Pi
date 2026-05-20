@@ -41,13 +41,10 @@ class CameraModule:
         encoder = H264Encoder(
             bitrate=4000000,
             profile='baseline',
-            # idr_period: IDR(키프레임) 삽입 주기 (프레임 단위).
+            # iperiod: 키프레임(IDR) 삽입 주기 (프레임 단위).
             # 낮을수록 움직임에 의한 화면 깨짐 복구가 빠름.
             # 30fps 기준으로 15 = 0.5초마다 키프레임
-            idr_period=15,
-            # repeat_sequence_header: True이면 매 IDR 앞에 SPS/PPS 헤더를 반복 삽입.
-            # 디코더가 스트림 중간에 합류해도 화면이 깨지지 않음.
-            repeat_sequence_header=True,
+            iperiod=15,
         )
         self.picam2.start_recording(encoder, FileOutput(output_stream))
 
