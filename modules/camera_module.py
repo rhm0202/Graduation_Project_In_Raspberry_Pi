@@ -37,8 +37,10 @@ class CameraModule:
     def start_h264_stream(self, output_stream):
         """하드웨어 H.264 레코딩을 시작하고 output_stream 객체에 바이트 스트림을 전달합니다."""
         from picamera2.encoders import H264Encoder
+        from picamera2.outputs import FileOutput
         encoder = H264Encoder(bitrate=2000000, profile='baseline')
-        self.picam2.start_recording(encoder, output_stream)
+        # picamera2는 Output 객체만 허용하므로, 커스텀 스트림을 FileOutput으로 래핑합니다.
+        self.picam2.start_recording(encoder, FileOutput(output_stream))
 
     def stop_h264_stream(self):
         """H.264 레코딩을 중지합니다."""
