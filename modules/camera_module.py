@@ -38,8 +38,17 @@ class CameraModule:
         """하드웨어 H.264 레코딩을 시작하고 output_stream 객체에 바이트 스트림을 전달합니다."""
         from picamera2.encoders import H264Encoder
         from picamera2.outputs import FileOutput
-        encoder = H264Encoder(bitrate=2000000, profile='baseline')
-        # picamera2는 Output 객체만 허용하므로, 커스텀 스트림을 FileOutput으로 래핑합니다.
+        encoder = H264Encoder(
+            bitrate=4000000,
+            profile='baseline',
+            # idr_period: IDR(키프레임) 삽입 주기 (프레임 단위).
+            # 낮을수록 움직임에 의한 화면 깨짐 복구가 빠름.
+            # 30fps 기준으로 15 = 0.5초마다 키프레임
+            idr_period=15,
+            # repeat_sequence_header: True이면 매 IDR 앞에 SPS/PPS 헤더를 반복 삽입.
+            # 디코더가 스트림 중간에 합류해도 화면이 깨지지 않음.
+            repeat_sequence_header=True,
+        )
         self.picam2.start_recording(encoder, FileOutput(output_stream))
 
     def stop_h264_stream(self):
