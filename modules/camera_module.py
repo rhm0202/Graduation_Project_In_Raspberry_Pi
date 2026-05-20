@@ -34,6 +34,20 @@ class CameraModule:
         with self._lock:
             return self._frame.copy() if self._frame is not None else None
 
+    def start_h264_stream(self, output_stream):
+        """하드웨어 H.264 레코딩을 시작하고 output_stream 객체에 바이트 스트림을 전달합니다."""
+        from picamera2.encoders import H264Encoder
+        # inline headers를 활성화하면 매 I-frame마다 SPS/PPS 헤더가 포함되어 스트리밍에 유리합니다.
+        encoder = H264Encoder(bitrate=2000000, profile='baseline', inline_headers=True)
+        self.picam2.start_recording(encoder, output_stream)
+
+    def stop_h264_stream(self):
+        """H.264 레코딩을 중지합니다."""
+        try:
+            self.picam2.stop_recording()
+        except Exception:
+            pass
+
     def stop(self):
         self._running = False
         self._thread.join(timeout=2)

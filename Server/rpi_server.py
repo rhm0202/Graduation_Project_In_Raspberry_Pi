@@ -4,6 +4,7 @@ import sys
 import os
 import cv2
 import websockets
+import queue
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from modules.motor_module_pca9685 import PanTiltController
@@ -16,12 +17,28 @@ from modules.logger import get_logger
 HOST = "0.0.0.0"  # 모든 IP에서 접속 허용
 PORT = 8000       # spotlight_core.py의 RPI_WS_URL 포트와 일치해야 함
 
-JPEG_QUALITY = 80  # 전송용 JPEG 압축 품질
-
 # ==========================================
 # 로거
 # ==========================================
 logger = get_logger("rpi_server")
+
+# ==========================================
+# H.264 버퍼 클래스
+# ==========================================
+class H264StreamOutput:
+    """하드웨어 인코더에서 실시간으로 생성된 바이트 스트림을 버퍼링하는 클래스"""
+    def __init__(self):
+        self.q = queue.Queue(maxsize=30)  # 네트워크 지연 대비 버퍼 큐
+
+    def write(self, buf):
+        try:
+            # 큐가 가득 차면 새 프레임을 드롭하여 메모리 누수 방지 및 최신 상태 유지
+            self.q.put_nowait(buf)
+        except queue.Full:
+            pass
+
+    def flush(self):
+        pass
 
 # ==========================================
 # 카메라 초기화
@@ -45,25 +62,26 @@ async def stream_handler(websocket):
     frame_count = 0
 
     async def send_frames():
-        """카메라 프레임을 JPEG 바이너리로 인코딩해 PC로 전송."""
+        """하드웨어 인코딩된 H.264 바이트 스트림을 PC로 전송."""
         nonlocal frame_count
+        
+        output = H264StreamOutput()
+        camera.start_h264_stream(output)
+        
+        loop = asyncio.get_running_loop()
         try:
             while True:
-                frame = camera.capture_bgr()
-                if frame is None:
-                    await asyncio.sleep(0)
-                    continue
-
-                ret, encoded = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
-                if ret:
-                    await websocket.send(encoded.tobytes())
-                    frame_count += 1
-                    if frame_count % 100 == 0:
-                        logger.debug(f"프레임 전송: {frame_count}장")
-
-                await asyncio.sleep(1 / 50)  # 50fps 제한 (카메라 최대 지원 프레임레이트)
+                # 큐에서 바이트 데이터를 대기하여 가져옴 (blocking I/O 처리를 비동기로 수행)
+                buf = await loop.run_in_executor(None, output.q.get)
+                await websocket.send(buf)
+                
+                frame_count += 1
+                if frame_count % 100 == 0:
+                    logger.debug(f"H.264 패킷 전송: {frame_count}개")
         except websockets.exceptions.ConnectionClosed:
             pass
+        finally:
+            camera.stop_h264_stream()
 
     async def receive_commands():
         """PC에서 오는 JSON 제어 명령 수신.
