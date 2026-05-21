@@ -39,12 +39,9 @@ class CameraModule:
         from picamera2.encoders import H264Encoder
         from picamera2.outputs import FileOutput
         encoder = H264Encoder(
-            bitrate=4000000,
+            bitrate=2000000,  # Wi-Fi 환경에서 2Mbps가 지연/품질 균형에 적절
             profile='baseline',
-            # iperiod: 키프레임(IDR) 삽입 주기 (프레임 단위).
-            # 낮을수록 움직임에 의한 화면 깨짐 복구가 빠름.
-            # 30fps 기준으로 15 = 0.5초마다 키프레임
-            iperiod=15,
+            iperiod=15,       # 0.5초마다 키프레임 → 움직임 깨짐 빠른 복구
         )
         self.picam2.start_recording(encoder, FileOutput(output_stream))
 

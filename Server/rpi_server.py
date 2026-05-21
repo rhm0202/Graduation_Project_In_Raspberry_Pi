@@ -32,7 +32,7 @@ class H264StreamOutput(io.BufferedIOBase):
     """
     def __init__(self):
         super().__init__()
-        self.q = queue.Queue(maxsize=30)  # 네트워크 지연 대비 버퍼 큐
+        self.q = queue.Queue(maxsize=3)  # 버퍼를 최소화하여 지연 감소 (이전: 30)
 
     def write(self, buf):
         try:
