@@ -2,12 +2,10 @@ import asyncio
 import json
 import sys
 import os
-import cv2
 import websockets
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from modules.motor_module_pca9685 import PanTiltController
-from modules.camera_module import CameraModule
 from modules.logger import get_logger
 
 # ==========================================
@@ -16,18 +14,10 @@ from modules.logger import get_logger
 HOST = "0.0.0.0"  # 모든 IP에서 접속 허용
 PORT = 8000       # spotlight_core.py의 RPI_WS_URL 포트와 일치해야 함
 
-JPEG_QUALITY = 80  # 전송용 JPEG 압축 품질
-
 # ==========================================
 # 로거
 # ==========================================
 logger = get_logger("rpi_server")
-
-# ==========================================
-# 카메라 초기화
-# ==========================================
-camera = CameraModule()
-logger.info("카메라 시작")
 
 # ==========================================
 # 모터 초기화
@@ -40,30 +30,10 @@ logger.info("Pan/Tilt 서보 초기화 완료 (중앙 복귀)")
 # WebSocket 핸들러
 # ==========================================
 async def stream_handler(websocket):
-    """PC 접속 시 영상 송신과 제어 명령 수신을 동시 처리."""
+    """PC 접속 시 제어 명령 수신 처리.
+    영상 송신은 MediaMTX WebRTC(WHEP)로 전환되어 이 서버에서 담당하지 않음.
+    """
     logger.info("PC 연결됨")
-    frame_count = 0
-
-    async def send_frames():
-        """카메라 프레임을 JPEG 바이너리로 인코딩해 PC로 전송."""
-        nonlocal frame_count
-        try:
-            while True:
-                frame = camera.capture_bgr()
-                if frame is None:
-                    await asyncio.sleep(0)
-                    continue
-
-                ret, encoded = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
-                if ret:
-                    await websocket.send(encoded.tobytes())
-                    frame_count += 1
-                    if frame_count % 100 == 0:
-                        logger.debug(f"프레임 전송: {frame_count}장")
-
-                await asyncio.sleep(1 / 50)  # 50fps 제한 (카메라 최대 지원 프레임레이트)
-        except websockets.exceptions.ConnectionClosed:
-            pass
 
     async def receive_commands():
         """PC에서 오는 JSON 제어 명령 수신.
@@ -87,15 +57,13 @@ async def stream_handler(websocket):
         except websockets.exceptions.ConnectionClosed:
             pass
 
-    sender   = asyncio.create_task(send_frames())
     receiver = asyncio.create_task(receive_commands())
 
     try:
-        await asyncio.gather(sender, receiver)
+        await receiver
     finally:
-        sender.cancel()
         receiver.cancel()
-        logger.info(f"PC 연결 해제됨 (전송 프레임: {frame_count}장)")
+        logger.info("PC 연결 해제됨")
 
 # ==========================================
 # 진입점
@@ -111,5 +79,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("서버 종료")
     finally:
-        camera.stop()
         pan_tilt.cleanup()
