@@ -12,7 +12,7 @@ from modules.logger import get_logger
 # 설정
 # ==========================================
 HOST = "0.0.0.0"  # 모든 IP에서 접속 허용
-PORT = 8000       # spotlight_core.py의 RPI_WS_URL 포트와 일치해야 함
+PORT = 8765       # 포트 충돌 방지 (MediaMTX가 8000 사용)
 
 # ==========================================
 # 로거
